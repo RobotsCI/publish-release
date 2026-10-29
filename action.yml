@@ -1,0 +1,70 @@
+name: Publish Robot release
+description: Publish an existing Linux application artifact and CycloneDX SBOM, succeeding only after Robot verifies READY_TO_SIGN.
+inputs:
+  api-base-url:
+    description: HTTPS Robot API origin, without /api/v1.
+    required: true
+  oidc-audience:
+    description: Audience configured for GitHub release ingestion.
+    required: true
+  release-version:
+    description: Stable application version, retained across retries.
+    required: true
+  artifact-path:
+    description: Existing tar.gz application artifact inside GITHUB_WORKSPACE.
+    required: true
+  sbom-path:
+    description: Existing CycloneDX 1.5 JSON SBOM with the artifact SHA-256 in metadata.component.hashes.
+    required: true
+  target-architecture:
+    description: Application target architecture, arm64 or amd64.
+    required: true
+  min-agent-version:
+    description: Minimum compatible Robot agent version.
+    required: true
+  oci-artifact-reference:
+    description: Docker Hub tag for the four-layer evidence manifest (docker.io/namespace/repository:tag).
+    required: true
+  dockerhub-username:
+    description: Docker Hub user with access to the dedicated evidence repository.
+    required: true
+  dockerhub-token:
+    description: Scoped Docker Hub publishing token; forwarded only for request-scoped private evidence verification.
+    required: true
+outputs:
+  release-id:
+    description: Original opaque candidate ID.
+    value: ${{ steps.publish.outputs.release-id }}
+  status:
+    description: Verified terminal status, READY_TO_SIGN on success.
+    value: ${{ steps.publish.outputs.status }}
+  artifact-sha256:
+    description: SHA-256 of the unchanged application artifact.
+    value: ${{ steps.publish.outputs.artifact-sha256 }}
+  sbom-sha256:
+    description: SHA-256 of the unchanged SBOM.
+    value: ${{ steps.publish.outputs.sbom-sha256 }}
+  oci-evidence-reference:
+    description: Accepted immutable Docker OCI manifest reference.
+    value: ${{ steps.publish.outputs.oci-evidence-reference }}
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Cosign
+      uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      with:
+        cosign-release: v3.0.2
+    - id: publish
+      shell: bash
+      env:
+        INPUT_API_BASE_URL: ${{ inputs.api-base-url }}
+        INPUT_OIDC_AUDIENCE: ${{ inputs.oidc-audience }}
+        INPUT_RELEASE_VERSION: ${{ inputs.release-version }}
+        INPUT_ARTIFACT_PATH: ${{ inputs.artifact-path }}
+        INPUT_SBOM_PATH: ${{ inputs.sbom-path }}
+        INPUT_TARGET_ARCHITECTURE: ${{ inputs.target-architecture }}
+        INPUT_MIN_AGENT_VERSION: ${{ inputs.min-agent-version }}
+        INPUT_OCI_ARTIFACT_REFERENCE: ${{ inputs.oci-artifact-reference }}
+        INPUT_DOCKERHUB_USERNAME: ${{ inputs.dockerhub-username }}
+        INPUT_DOCKERHUB_TOKEN: ${{ inputs.dockerhub-token }}
+      run: python3 "$GITHUB_ACTION_PATH/scripts/publish.py"

@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_kind",
+        "release_version",
+        "target",
+        "artifact",
+        "sbom",
+        "oci_attestations"
+      ],
+      "properties": {
+        "release_kind": {
+          "type": "string",
+          "const": "application"
+        },
+        "release_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "os",
+            "architectures",
+            "min_agent_version",
+            "hardware_constraint_ids"
+          ],
+          "properties": {
+            "os": {
+              "type": "string",
+              "const": "linux"
+            },
+            "architectures": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "amd64",
+                  "arm64"
+                ]
+              }
+            },
+            "min_agent_version": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$"
+            },
+            "hardware_constraint_ids": {
+              "type": "array",
+              "maxItems": 32,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+              }
+            }
+          }
+        },
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "digest",
+            "size_bytes",
+            "media_type"
+          ],
+          "properties": {
+            "digest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "algorithm",
+                "value"
+              ],
+              "properties": {
+                "algorithm": {
+                  "type": "string",
+                  "const": "sha256"
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5368709120
+            },
+            "media_type": {
+              "type": "string",
+              "const": "application/gzip"
+            }
+          }
+        },
+        "sbom": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "digest",
+            "size_bytes",
+            "media_type"
+          ],
+          "properties": {
+            "digest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "algorithm",
+                "value"
+              ],
+              "properties": {
+                "algorithm": {
+                  "type": "string",
+                  "const": "sha256"
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5368709120
+            },
+            "media_type": {
+              "type": "string",
+              "const": "application/vnd.cyclonedx+json"
+            }
+          }
+        },
+        "oci_attestations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "oci_reference"
+          ],
+          "properties": {
+            "oci_reference": {
+              "type": "string",
+              "maxLength": 512,
+              "pattern": "^docker\\.io/[a-z0-9][a-z0-9._-]{0,63}/[a-z0-9][a-z0-9._/-]{0,191}@sha256:[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "FinalizeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "registry_credentials": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "username",
+            "token"
+          ],
+          "properties": {
+            "username": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+            },
+            "token": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[!-~]+$",
+              "writeOnly": true
+            }
+          }
+        }
+      }
+    },
+    "CreateEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "data": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "status",
+                "oci_evidence_reference",
+                "uploads"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "UPLOADING"
+                  ]
+                },
+                "oci_evidence_reference": {
+                  "type": "string",
+                  "maxLength": 512,
+                  "pattern": "^docker\\.io/[a-z0-9][a-z0-9._-]{0,63}/[a-z0-9][a-z0-9._/-]{0,191}@sha256:[a-f0-9]{64}$"
+                },
+                "uploads": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "artifact",
+                    "sbom"
+                  ],
+                  "properties": {
+                    "artifact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "upload_url",
+                        "required_headers"
+                      ],
+                      "properties": {
+                        "upload_url": {
+                          "type": "string",
+                          "format": "uri",
+                          "pattern": "^https://[^/@\\s]+/",
+                          "maxLength": 8192
+                        },
+                        "required_headers": {
+                          "type": "object",
+                          "maxProperties": 16,
+                          "propertyNames": {
+                            "pattern": "^[A-Za-z0-9-]{1,128}$"
+                          },
+                          "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096,
+                            "pattern": "^[^\\r\\n]+$"
+                          }
+                        }
+                      }
+                    },
+                    "sbom": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "upload_url",
+                        "required_headers"
+                      ],
+                      "properties": {
+                        "upload_url": {
+                          "type": "string",
+                          "format": "uri",
+                          "pattern": "^https://[^/@\\s]+/",
+                          "maxLength": 8192
+                        },
+                        "required_headers": {
+                          "type": "object",
+                          "maxProperties": 16,
+                          "propertyNames": {
+                            "pattern": "^[A-Za-z0-9-]{1,128}$"
+                          },
+                          "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096,
+                            "pattern": "^[^\\r\\n]+$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "status",
+                "oci_evidence_reference"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "VALIDATING",
+                    "READY_TO_SIGN",
+                    "REJECTED"
+                  ]
+                },
+                "oci_evidence_reference": {
+                  "type": "string",
+                  "maxLength": 512,
+                  "pattern": "^docker\\.io/[a-z0-9][a-z0-9._-]{0,63}/[a-z0-9][a-z0-9._/-]{0,191}@sha256:[a-f0-9]{64}$"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "FinalizeEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "timestamp",
+        "data"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "status"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "VALIDATING",
+                "READY_TO_SIGN",
+                "REJECTED"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
